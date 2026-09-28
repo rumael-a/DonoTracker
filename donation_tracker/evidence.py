@@ -12,7 +12,7 @@ from .models import Donation, Email
 
 
 def safe_name(s: str, maxlen: int = 40) -> str:
-    s = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", s)
+    s = re.sub(r'[<>:"/\\|?*#%\x00-\x1f]', "_", s)
     return s[:maxlen].strip("_. ")
 
 
@@ -50,6 +50,7 @@ def email_to_html(email: Email) -> str:
     esc = html_mod.escape
     return f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: cid:; style-src 'unsafe-inline'; font-src data:">
 <title>{esc(email.subject)}</title>
 <style>
   body {{ margin: 0; font-family: Arial, sans-serif; }}

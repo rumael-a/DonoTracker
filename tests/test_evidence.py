@@ -15,6 +15,7 @@ def test_gmail_url():
 
 def test_safe_name_and_slug():
     assert safe_name('a<b>:c"d/e\\f|g?h*i') == "a_b__c_d_e_f_g_h_i"
+    assert safe_name("Receipt #12 100%") == "Receipt _12 100"
     assert org_slug("Muslim Hands Canada") == "Muslim_Hands_Canada"
 
 
@@ -32,6 +33,14 @@ def test_email_to_html_escapes_plain_text_and_has_header():
     assert "1 &lt; 2" in html
     assert "abbasirumael@gmail.com" in html
     assert "<meta charset=\"utf-8\">" in html
+
+
+def test_email_to_html_blocks_remote_content():
+    html = email_to_html(email_record(body_html='<img src="https://tracker.example/p.gif">'))
+    csp = ('<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; img-src data: cid:; '
+           'style-src \'unsafe-inline\'; font-src data:">')
+    assert csp in html
+    assert html.index(csp) < html.index("</head>")
 
 
 def test_email_to_html_uses_html_body_when_present():
