@@ -212,10 +212,13 @@ by solicitation-subject patterns (`donate to`, `giving tuesday`, `matching gift`
 known commercial senders. Keyword lists live in a `detector.yaml` so they can be tuned
 without code changes.
 
-For each candidate, a starter rule is appended to `suggested_rules.yaml`, with `name` from
-the sender display name, `match.from` from the sender domain, `match.subject` from the
-subject, and `country`/`currency` guessed (`.ca` domain or "CRA"/"registered charity" →
-CA/CAD; else US/USD), marked `# REVIEW`.
+Candidates are grouped by sender (display name, case-insensitive, + domain), so different
+organizations sending through one payment processor's domain (e.g. Zeffy) get separate
+blocks. For each group, a starter rule is appended to `suggested_rules.yaml`, with `name`
+from the sender display name, `match.from` = `"<Display Name> <local@domain"` (or
+`"@domain"` when there is no display name), `match.subject` from the subject, and
+`country`/`currency` guessed (`.ca` domain or "CRA"/"registered charity" → CA/CAD; else
+US/USD), marked `# REVIEW`.
 
 ## Error handling
 

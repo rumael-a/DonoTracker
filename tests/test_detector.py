@@ -36,15 +36,16 @@ def test_starter_rule_guesses_country():
         "country": "CA",
         "currency": "CAD",
         "role": "receipt",
-        "match": {"from": ["@foodbank.ca"], "subject": ["Your receipt"]},
+        "match": {"from": ["Food Bank <noreply@foodbank.ca"], "subject": ["Your receipt"]},
     }
     us = starter_rule(email_record(sender="noreply@charity.org", body_text="tax-deductible"))
     assert us["country"] == "US" and us["currency"] == "USD" and us["name"] == "charity.org"
+    assert us["match"]["from"] == ["@charity.org"]
     cra = starter_rule(email_record(sender="x@charity.org", body_text="Registered charity 123456789RR0001"))
     assert cra["country"] == "CA"
 
 
-def test_suggested_rules_yaml_dedupes_by_domain_and_is_valid_yaml():
+def test_suggested_rules_yaml_dedupes_by_sender_name_and_domain_and_is_valid_yaml():
     emails = [
         email_record(sender="A <a@one.ca>", subject="Receipt 1"),
         email_record(sender="A <b@one.ca>", subject="Receipt 2"),
@@ -54,7 +55,18 @@ def test_suggested_rules_yaml_dedupes_by_domain_and_is_valid_yaml():
     assert text.count("# REVIEW") == 2
     assert "seen 2 email(s)" in text
     parsed = yaml.safe_load(text)
-    assert [r["match"]["from"] for r in parsed] == [["@one.ca"], ["@two.org"]]
+    assert [r["match"]["from"] for r in parsed] == [["A <a@one.ca"], ["B <x@two.org"]]
+
+
+def test_suggested_rules_yaml_splits_shared_processor_domain_by_display_name():
+    emails = [
+        email_record(sender="Muslim Unity Center <contact@transaction.mailer.zeffy.com>", subject="Donation"),
+        email_record(sender="Other Mosque <contact@transaction.mailer.zeffy.com>", subject="Donation"),
+        email_record(sender="muslim unity center <contact@transaction.mailer.zeffy.com>", subject="Donation"),
+    ]
+    parsed = yaml.safe_load(suggested_rules_yaml(emails))
+    assert [r["name"] for r in parsed] == ["Muslim Unity Center", "Other Mosque"]
+    assert parsed[1]["match"]["from"] == ["Other Mosque <contact@transaction.mailer.zeffy.com"]
 
 
 def test_bad_detector_regex(tmp_path):

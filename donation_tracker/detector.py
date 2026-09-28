@@ -59,23 +59,30 @@ def _domain(email: Email) -> str:
     return address.rpartition("@")[2].lower() or address.lower()
 
 
+def _display(email: Email) -> str:
+    return parseaddr(email.sender)[0].strip()
+
+
 def starter_rule(email: Email) -> dict:
-    display = parseaddr(email.sender)[0].strip()
+    display = _display(email)
     domain = _domain(email)
+    local = (parseaddr(email.sender)[1] or email.sender).rpartition("@")[0]
     is_ca = domain.endswith(".ca") or bool(_CA_HINTS.search(email.body_text))
+    # Display name + address, so orgs sharing a payment processor's domain (e.g. zeffy.com) stay apart.
+    match_from = f"{display} <{local}@{domain}" if display else f"@{domain}"
     return {
         "name": display or domain,
         "country": "CA" if is_ca else "US",
         "currency": "CAD" if is_ca else "USD",
         "role": "receipt",
-        "match": {"from": [f"@{domain}"], "subject": [email.subject]},
+        "match": {"from": [match_from], "subject": [email.subject]},
     }
 
 
 def suggested_rules_yaml(emails: list[Email]) -> str:
-    groups: dict[str, list[Email]] = {}
+    groups: dict[tuple[str, str], list[Email]] = {}
     for email in emails:
-        groups.setdefault(_domain(email), []).append(email)
+        groups.setdefault((_display(email).lower(), _domain(email)), []).append(email)
     blocks = []
     for group in groups.values():
         first = min(group, key=lambda e: e.date)
