@@ -1,0 +1,15 @@
+# Private mail data — never commit
+*.mbox
+abbasirumael/
+itsrumzy/
+rumaelabbasi/
+archived_attempts/
+output/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+tests/fixtures/real/
+.superpowers/
