@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
 
+import pytest
 from openpyxl import load_workbook
 
 from donation_tracker.config import Account
@@ -92,6 +93,19 @@ def test_end_to_end(tmp_path):
         for cell in (row[11], row[12]):
             if cell.hyperlink:
                 assert (pack / cell.hyperlink.target).exists()
+
+
+class ExplodingRenderer:
+    def render(self, html_path, pdf_path):
+        raise RuntimeError("renderer crashed")
+
+
+def test_run_log_is_written_even_when_a_later_step_fails(tmp_path):
+    out_root = tmp_path / "output"
+    with pytest.raises(RuntimeError, match="renderer crashed"):
+        run(2025, build_accounts(tmp_path), build_rules(), load_detector(ROOT / "detector.yaml"), out_root,
+            ExplodingRenderer())
+    assert (out_root / "2025" / "run_log.txt").exists()
 
 
 def test_early_next_year_candidate_mentioning_the_year_needs_a_rule(tmp_path):

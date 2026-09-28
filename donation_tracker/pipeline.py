@@ -103,13 +103,15 @@ def run(year: int, accounts: list[Account], rules: list[Rule], detector: Detecto
         shutil.rmtree(out_dir)
     out_dir.mkdir(parents=True)
     log: list[str] = []
-    donations, needs_rule, skipped = collect(accounts, rules, detector, year, log)
-    for donation in donations:
-        save_evidence(donation, out_dir / "evidence")
-    summary = summarize(donations, len(needs_rule), skipped)
-    write_workbook(out_dir / f"donations_{year}.xlsx", [row_from_donation(d) for d in donations], summary,
-                   needs_rule, year)
-    (out_dir / "suggested_rules.yaml").write_text(suggested_rules_yaml(needs_rule), encoding="utf-8")
-    build_pack(donations, out_dir / "for_accountant", renderer, year, summary, log)
-    (out_dir / "run_log.txt").write_text("\n".join(log) + "\n", encoding="utf-8")
+    try:
+        donations, needs_rule, skipped = collect(accounts, rules, detector, year, log)
+        for donation in donations:
+            save_evidence(donation, out_dir / "evidence")
+        summary = summarize(donations, len(needs_rule), skipped)
+        write_workbook(out_dir / f"donations_{year}.xlsx", [row_from_donation(d) for d in donations], summary,
+                       needs_rule, year)
+        (out_dir / "suggested_rules.yaml").write_text(suggested_rules_yaml(needs_rule), encoding="utf-8")
+        build_pack(donations, out_dir / "for_accountant", renderer, year, summary, log)
+    finally:
+        (out_dir / "run_log.txt").write_text("\n".join(log) + "\n", encoding="utf-8")
     return RunResult(out_dir, donations, needs_rule, summary, log)
