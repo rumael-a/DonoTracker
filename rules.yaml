@@ -50,6 +50,8 @@
     amount: 'Amount paid\s*CA\$([\d,]+\.\d{2})'
     receipt_no: 'Receipt #([\d-]+)'
 
+# A year-end cumulative receipt from themasjidapp.net with "Hamilton Downtown Mosque" in the subject
+# would match this weekly rule — if that happens, add a separate `tax_year: previous` rule ABOVE it.
 - name: Hamilton Downtown Mosque
   country: CA
   currency: CAD

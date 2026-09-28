@@ -2,6 +2,14 @@
 
 Builds a yearly donation report from Gmail Takeout exports.
 
+## Setup (once)
+
+1. Install Python 3.11+.
+2. `python -m venv .venv`
+3. `.venv\Scripts\python -m pip install -r requirements.txt`
+
+Run all commands from the project folder — config paths are relative.
+
 ## Each year (e.g. for 2026, run in early 2027 after annual receipts arrive)
 
 1. Google Takeout → Mail → export each account; unzip so each account's
@@ -16,6 +24,13 @@ Builds a yearly donation report from Gmail Takeout exports.
    `.venv\Scripts\python donations.py test-rule "Org Name" --year 2026`
    Then re-run step 2.
 5. Send `output\2026\for_accountant\` (zip it) to your accountant.
+
+## Receipts that need manual handling
+
+Neither receipt appears in the report automatically — get them yourself and add them to what you send your accountant:
+
+- **Hamilton Downtown Mosque** — the year-end receipt is not emailed; request it from the mosque.
+- **ICNA Relief Canada** — the official CRA receipt is download-only, via a link in their email.
 
 ## Adding a rule
 
