@@ -84,8 +84,10 @@ receipt_paths[]`
    logged as conflicts).
 5. For matched messages whose tax year equals the target year: build searchable text = body
    text + text of every PDF attachment, extract fields → `Donation`.
-   - Unmatched, dated in the target year, and `candidate_detector` says yes (subject + body
-     text; PDFs not read, for speed) → "Needs a rule" list + starter YAML block.
+   - Unmatched, and `candidate_detector` says yes (subject + body text; PDFs not read, for
+     speed), and either dated in the target year, or dated before May 1 of the following year
+     with the target year (e.g. `2025`) in its subject or body text (an annual receipt no rule
+     covers yet) → "Needs a rule" list + starter YAML block.
    - Otherwise ignored.
 6. Save evidence for every `Donation`.
 7. Write the Excel report, `suggested_rules.yaml`, `run_log.txt`, and the accountant pack.
@@ -116,7 +118,7 @@ receipt_paths[]`
 - `tax_year: previous` attributes the email to the year before it was sent (e.g. MyTenNights'
   annual receipt, sent each February). To support this, a run for year N reads messages dated
   N and N+1; messages from N+1 are kept only when their rule has `tax_year: previous`.
-  "Needs a rule" candidates come from year N only.
+  "Needs a rule" candidates come from year N, plus Jan–Apr of N+1 when the email mentions N.
 
 - `match.from` is required; `match.subject` is optional. Both conditions must hold when both
   are given.
@@ -184,7 +186,8 @@ so each folder can be zipped and shared.
   Hyperlinks for Gmail / Email file / Receipt file. NEEDS REVIEW rows highlighted yellow.
   Multiple receipt attachments → first in the Receipt file column, the rest listed in Notes.
   The Notes column is regenerated each run (user notes are not preserved).
-- **Needs a rule:** `Date, Account, From, Subject, Gmail`.
+- **Needs a rule:** `Date, Account, From, Subject, Gmail, Note`. Note is
+  "Dated N+1; possibly a receipt for N" for candidates from the following year, else empty.
 
 ### `for_accountant/`
 

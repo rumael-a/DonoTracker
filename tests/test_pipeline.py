@@ -89,3 +89,20 @@ def test_end_to_end(tmp_path):
         for cell in (row[11], row[12]):
             if cell.hyperlink:
                 assert (pack / cell.hyperlink.target).exists()
+
+
+def test_early_next_year_candidate_mentioning_the_year_needs_a_rule(tmp_path):
+    raws = [
+        make_email(sender="Unknown Charity <hi@unknown.org>", subject="Your 2025 tax receipt", text="See attached",
+                   message_id="<u1@x>", date="Tue, 10 Feb 2026 12:00:00 +0000"),
+        make_email(sender="Unknown Charity <hi@unknown.org>", subject="Your tax receipt", text="For 2026",
+                   message_id="<u2@x>", date="Wed, 11 Feb 2026 12:00:00 +0000"),
+        make_email(sender="Unknown Charity <hi@unknown.org>", subject="Your 2025 tax receipt", text="Late",
+                   message_id="<u3@x>", date="Mon, 01 Jun 2026 12:00:00 +0000"),
+    ]
+    accounts = [Account("abbasirumael@gmail.com", make_mbox(tmp_path / "a.mbox", raws))]
+    result = run(2025, accounts, [], load_detector(ROOT / "detector.yaml"), tmp_path / "output", FakeRenderer())
+    assert [e.message_id for e in result.needs_rule] == ["<u1@x>"]
+    ws = load_workbook(tmp_path / "output" / "2025" / "donations_2025.xlsx")["Needs a rule"]
+    assert ws["F1"].value == "Note"
+    assert ws["F2"].value == "Dated 2026; possibly a receipt for 2025"

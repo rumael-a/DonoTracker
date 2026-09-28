@@ -27,6 +27,16 @@ class RunResult:
     log: list[str]
 
 
+def _needs_rule_candidate(email: Email, detector: DetectorConfig, year: int) -> bool:
+    """Unmatched donation-like mail from the year, or from Jan-Apr of the next year when it mentions
+    the year (an annual receipt that no rule covers yet)."""
+    if email.date.year == year:
+        return is_candidate(email, detector)
+    early_next_year = email.date.year == year + 1 and email.date.month < 5
+    mentions_year = str(year) in email.subject or str(year) in email.body_text
+    return early_next_year and mentions_year and is_candidate(email, detector)
+
+
 def collect(accounts: list[Account], rules: list[Rule], detector: DetectorConfig, year: int,
             log: list[str]) -> tuple[list[Donation], list[Email], int]:
     seen: set[str] = set()
@@ -46,7 +56,7 @@ def collect(accounts: list[Account], rules: list[Rule], detector: DetectorConfig
             seen.add(email.message_id)
             rule, others = match_rule(email, rules)
             if rule is None:
-                if email.date.year == year and is_candidate(email, detector):
+                if _needs_rule_candidate(email, detector, year):
                     needs_rule.append(email)
                 continue
             if tax_year_for(email, rule) != year:
@@ -74,7 +84,7 @@ def run(year: int, accounts: list[Account], rules: list[Rule], detector: Detecto
         save_evidence(donation, out_dir / "evidence")
     summary = summarize(donations, len(needs_rule), skipped)
     write_workbook(out_dir / f"donations_{year}.xlsx", [row_from_donation(d) for d in donations], summary,
-                   needs_rule)
+                   needs_rule, year)
     (out_dir / "suggested_rules.yaml").write_text(suggested_rules_yaml(needs_rule), encoding="utf-8")
     build_pack(donations, out_dir / "for_accountant", renderer, year, summary, log)
     (out_dir / "run_log.txt").write_text("\n".join(log) + "\n", encoding="utf-8")

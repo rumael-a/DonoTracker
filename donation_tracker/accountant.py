@@ -36,5 +36,5 @@ def build_pack(donations: list[Donation], pack_dir: Path, renderer, year: int, s
             receipts.append(target)
             written.append(target)
         rows.append(row_from_donation(d, email_file=email_file, receipt_files=receipts, extra_notes=notes))
-    write_workbook(pack_dir / f"donations_{year}_summary.xlsx", rows, summary, None)
+    write_workbook(pack_dir / f"donations_{year}_summary.xlsx", rows, summary, None, year)
     return written

@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from decimal import Decimal
 
 from openpyxl import load_workbook
@@ -39,7 +40,9 @@ def test_write_workbook_sheets_rows_and_relative_links(tmp_path):
     review.notes = ["Amount not found"]
     rows = [row_from_donation(d), row_from_donation(review)]
     candidate = email_record(sender="New <x@new.org>", subject="Thanks for your gift")
-    write_workbook(out / "donations_2025.xlsx", rows, summarize([d, review], 1, 0), [candidate])
+    late = email_record(sender="New <x@new.org>", subject="Your 2025 receipt", message_id="<late@new.org>",
+                        date=datetime(2026, 2, 1, tzinfo=timezone.utc))
+    write_workbook(out / "donations_2025.xlsx", rows, summarize([d, review], 2, 0), [late, candidate], 2025)
 
     wb = load_workbook(out / "donations_2025.xlsx")
     assert wb.sheetnames == ["Summary", "Donations", "Needs a rule"]
@@ -59,9 +62,12 @@ def test_write_workbook_sheets_rows_and_relative_links(tmp_path):
     summary_values = [c.value for r in wb["Summary"].iter_rows() for c in r if c.value is not None]
     assert "CA / CAD" in summary_values and 100 in summary_values
     rules_sheet = wb["Needs a rule"]
+    assert [c.value for c in rules_sheet[1]] == ["Date", "Account", "From", "Subject", "Gmail", "Note"]
     assert rules_sheet["D2"].value == "Thanks for your gift"
+    assert not rules_sheet["F2"].value
+    assert rules_sheet["F3"].value == "Dated 2026; possibly a receipt for 2025"
 
 
 def test_workbook_without_needs_rule_sheet(tmp_path):
-    write_workbook(tmp_path / "s.xlsx", [], summarize([], 0, 0), None)
+    write_workbook(tmp_path / "s.xlsx", [], summarize([], 0, 0), None, 2025)
     assert load_workbook(tmp_path / "s.xlsx").sheetnames == ["Summary", "Donations"]

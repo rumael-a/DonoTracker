@@ -149,25 +149,27 @@ def _write_donations(ws, rows: list[ReportRow], workbook_path: Path) -> None:
     ws.freeze_panes = "A2"
 
 
-def _write_needs_rule(ws, emails: list[Email]) -> None:
-    ws.append(["Date", "Account", "From", "Subject", "Gmail"])
+def _write_needs_rule(ws, emails: list[Email], year: int) -> None:
+    ws.append(["Date", "Account", "From", "Subject", "Gmail", "Note"])
     for cell in ws[1]:
         cell.font = BOLD
     for email in sorted(emails, key=lambda e: e.date):
-        ws.append([email.date.date(), email.account, email.sender, email.subject, None])
+        note = f"Dated {year + 1}; possibly a receipt for {year}" if email.date.year == year + 1 else ""
+        ws.append([email.date.date(), email.account, email.sender, email.subject, None, note])
         url = gmail_url(email.account, email.message_id)
         if url:
             _link(ws.cell(ws.max_row, 5), url, "Open in Gmail")
-    for column, width in zip("ABCDE", [12, 26, 45, 60, 14]):
+    for column, width in zip("ABCDEF", [12, 26, 45, 60, 14, 40]):
         ws.column_dimensions[column].width = width
 
 
-def write_workbook(path: Path, rows: list[ReportRow], summary: Summary, needs_rule: list[Email] | None) -> None:
+def write_workbook(path: Path, rows: list[ReportRow], summary: Summary, needs_rule: list[Email] | None,
+                   year: int) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     wb = Workbook()
     _write_summary(wb.active, summary)
     wb.active.title = "Summary"
     _write_donations(wb.create_sheet("Donations"), rows, path)
     if needs_rule is not None:
-        _write_needs_rule(wb.create_sheet("Needs a rule"), needs_rule)
+        _write_needs_rule(wb.create_sheet("Needs a rule"), needs_rule, year)
     wb.save(path)
