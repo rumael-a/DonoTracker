@@ -8,7 +8,7 @@ from pathlib import Path
 from .config import ConfigError, load_accounts, load_rules
 from .detector import load_detector
 from .extractor import extract_donation, tax_year_for
-from .matcher import rule_matches
+from .matcher import match_rule, rule_matches
 from .mbox_reader import iter_emails
 from .pdf_render import EdgeRenderer
 from .pdf_text import attachments_text
@@ -59,11 +59,13 @@ def _test_rule(args) -> int:
         for email in iter_emails(account.mbox, account.email, {args.year, args.year + 1}):
             if not rule_matches(rule, email) or tax_year_for(email, rule) != args.year:
                 continue
+            winner, _ = match_rule(email, rules)
+            taken = f"  (taken by earlier rule '{winner.name}' in run)" if winner is not rule else ""
             pdf_text, textless = attachments_text(email.attachments)
             d = extract_donation(email, rule, email.body_text + "\n" + pdf_text, textless)
             count += 1
             amount = f"{d.amount:,.2f}" if d.amount is not None else "-"
-            print(f"{email.date:%Y-%m-%d}  {account.email}  {email.subject}")
+            print(f"{email.date:%Y-%m-%d}  {account.email}  {email.subject}{taken}")
             print(f"    amount={amount} {rule.currency}  receipt#={d.receipt_no or '-'}  "
                   f"charity_id={d.charity_id or '-'}  status={d.status}  {'; '.join(d.notes)}")
     print(f"{count} email(s) matched rule {rule.name!r} for tax year {args.year}")
@@ -71,6 +73,10 @@ def _test_rule(args) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    try:  # a Windows console can't encode every subject line; print '?' instead of crashing
+        sys.stdout.reconfigure(errors="replace")
+    except (AttributeError, ValueError):
+        pass
     args = _parser().parse_args(argv)
     try:
         if args.command == "test-rule":

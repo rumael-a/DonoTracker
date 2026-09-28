@@ -1,3 +1,5 @@
+import io
+import sys
 from pathlib import Path
 
 from donation_tracker import cli
@@ -52,3 +54,31 @@ def test_unknown_rule_and_config_errors(tmp_path, capsys):
     (tmp_path / "rules.yaml").write_text("- name: X\n  country: FR\n", encoding="utf-8")
     assert cli.main(["test-rule", "X", "--year", "2025", *common]) == 2
     assert "Config error" in capsys.readouterr().err
+
+
+def test_test_rule_notes_when_an_earlier_rule_wins_in_run(tmp_path, capsys):
+    common = setup_files(tmp_path)
+    (tmp_path / "rules.yaml").write_text(
+        "- name: Muslim Hands any\n  country: CA\n  currency: CAD\n  match:\n    from: muslimhands.ca\n"
+        "- name: Muslim Hands Canada\n  country: CA\n  currency: CAD\n  match:\n    from: muslimhands.ca\n",
+        encoding="utf-8")
+    assert cli.main(["test-rule", "Muslim Hands Canada", "--year", "2025", *common]) == 0
+    out = capsys.readouterr().out
+    assert "Your Receipt from Muslim Hands  (taken by earlier rule 'Muslim Hands any' in run)" in out
+    assert "1 email(s) matched" in out
+    assert cli.main(["test-rule", "Muslim Hands any", "--year", "2025", *common]) == 0
+    assert "taken by earlier rule" not in capsys.readouterr().out
+
+
+def test_test_rule_survives_console_that_cannot_encode_subject(tmp_path, monkeypatch):
+    common = setup_files(tmp_path)
+    (tmp_path / "a.mbox").unlink()
+    make_mbox(tmp_path / "a.mbox", [
+        make_email(sender="Muslim Hands <mail@muslimhands.ca>", subject="Your Receipt ✔ شكرا",
+                   text="Donation Amount: $50.00", date="Fri, 17 Oct 2025 10:00:00 -0400"),
+    ])
+    console = io.TextIOWrapper(io.BytesIO(), encoding="cp1252", errors="strict")
+    monkeypatch.setattr(sys, "stdout", console)
+    assert cli.main(["test-rule", "Muslim Hands Canada", "--year", "2025", *common]) == 0
+    console.flush()
+    assert "Your Receipt ? ????" in console.buffer.getvalue().decode("cp1252")
