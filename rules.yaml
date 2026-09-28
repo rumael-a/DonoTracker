@@ -1,2 +1,140 @@
-# One entry per organization / email type. See docs/superpowers/specs/2026-09-28-donation-tracker-design.md
-[]
+# One entry per organization / email type. First match wins, so put specific rules above general ones.
+# See docs/superpowers/specs/2026-09-28-donation-tracker-design.md for every field.
+
+# --- Canada -------------------------------------------------------------------------------------
+
+- name: Muslim Hands Canada
+  country: CA
+  currency: CAD
+  role: receipt
+  tax_year: previous          # official CRA receipt for the whole year, sent in March of the next year
+  charity_id: "81126 4985 RR0001"
+  match:
+    from: ["mail@muslimhands.ca"]
+    subject: ["Your Tax Receipt for"]
+  extract:
+    amount: 'Grand\s*T[^$\n]*\$([\d,]+\.\d{2})'
+    receipt_no: 'Receipt Number[^:\n]*::?\s*([A-Z]{2}\d+)'
+
+- name: Muslim Hands Canada (donation summary)
+  country: CA
+  currency: CAD
+  role: confirmation          # per-gift summary; the annual tax receipt above is what counts
+  charity_id: "81126 4985 RR0001"
+  match:
+    from: ["muslimhands.ca"]
+    subject: ["Your Receipt from Muslim Hands"]
+  extract:
+    amount: 'Your Donation Total\s*\$\s*([\d,]+(?:\.\d{2})?)'
+    receipt_no: 'Reference Number:\s*(\d+)'
+
+- name: ICNA Relief Canada
+  country: CA
+  currency: CAD
+  role: receipt
+  match:
+    from: ["no-reply@icnareliefcanada.ca"]
+    subject: ["Donation receipt"]
+  extract:
+    amount: 'Total Amount:\s*\$+\s*([\d,]+\.\d{2})'
+    receipt_no: 'Order Number:\s*(\d+)'
+
+- name: ICNA Relief Canada (card payment)
+  country: CA
+  currency: CAD
+  role: confirmation          # Stripe payment email for the same gift as the official receipt above
+  match:
+    from: ["ICNA Relief Canada <receipts"]
+    subject: ["ICNA Relief Canada receipt"]
+  extract:
+    amount: 'Amount paid\s*CA\$([\d,]+\.\d{2})'
+    receipt_no: 'Receipt #([\d-]+)'
+
+- name: Hamilton Downtown Mosque
+  country: CA
+  currency: CAD
+  role: receipt
+  charity_id: "87185 1366 RR0001"
+  match:
+    from: ["themasjidapp.net", "donorchoice.net"]
+    subject: ["Hamilton Downtown Mosque"]
+  extract:
+    # The Masjid App: "Amount Paid CA$10.64"; DonorChoice: "Amount: $20"
+    amount: '(?:Amount Paid\s*CA|Amount:\s*)\$\s*([\d,]+(?:\.\d{2})?)'
+    receipt_no: '(?:Receipt #|Invoice:\s*)(\d+)'
+
+- name: MyTenNights nightly
+  country: CA
+  currency: CAD               # user confirmed 2026-09-28: MyTenNights donations are in CAD
+  role: confirmation          # nightly confirmations; the annual receipt below is what counts
+  match:
+    from: ["contact@mytennights.com"]   # the "no 30th night" notice comes from info@ and is not a donation
+    subject: ["Night Donation", "Automated Donations"]
+
+- name: MyTenNights annual receipt
+  country: CA                 # issued by Myriad Canada Foundation, CRA BN 76978 4893 RR0001
+  currency: CAD
+  role: receipt
+  tax_year: previous          # sent in February for the previous year's donations
+  charity_id: "76978 4893 RR0001"
+  match:
+    from: ["mytennights.com"]
+    subject: ["Your Tax Receipt"]
+  extract:
+    amount: 'Eligible Amount\s*\$?([\d,]+\.\d{2})'
+    receipt_no: 'Receipt Number\s*([A-Z0-9_]+)'
+
+# --- United States ------------------------------------------------------------------------------
+
+- name: Muslim Hands USA
+  country: US
+  currency: USD
+  role: receipt
+  match:
+    from: ["muslimhandsusa.org"]
+    subject: ["Your Receipt from Muslim Hands"]
+  extract:
+    amount: 'Your Donation Total\s*\$\s*([\d,]+(?:\.\d{2})?)'
+    receipt_no: 'Reference Number:\s*(\d+)'
+
+- name: Muslim Center of Bloomfield Hills
+  country: US
+  currency: USD
+  role: receipt               # user confirmed 2026-09-28: the weekly "Email Receipt for Order" emails are donations
+  match:
+    from: ["Muslim Center Of Bloomfield Hills"]
+    subject: ["Email Receipt for Order"]
+  extract:
+    amount: 'Grand Total\s*\$\s*([\d,]+\.\d{2})'
+    receipt_no: 'Order ID:\s*#?(\w+)'
+
+- name: Muslim Unity Center
+  country: US
+  currency: USD
+  role: receipt
+  match:
+    from: ["Muslim Unity Center <contact@transaction.mailer.zeffy.com"]
+    subject: ["Donation Confirmation"]
+  extract:
+    amount: 'Donation amount:\s*\$\s*([\d,]+\.\d{2})'
+
+- name: Human Appeal USA
+  country: US
+  currency: USD
+  role: receipt
+  match:
+    from: ["Human Appeal USA"]
+    subject: ["Your Donation Receipt"]     # not "Your Orphan Pack" / "New Supporter Letter"
+  extract:
+    amount: '\$([\d,]+\.\d{2})\s*Grand Total'
+
+- name: ICNA Relief USA
+  country: US
+  currency: USD
+  role: receipt
+  match:
+    from: ["ICNA Relief USA"]
+    subject: ["Thank you so much for your generous donation"]   # not the "failed" / "canceled" notices
+  extract:
+    amount: 'Total Donation Amount:\s*\$([\d,]+\.\d{2})'   # the gift itself, excluding the covered processing fee
+    receipt_no: 'Confirmation ID:\s*([0-9a-f-]{36})'

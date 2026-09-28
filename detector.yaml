@@ -39,6 +39,20 @@ exclude_subject:
   - 'double.*gift'
   - 'gift.*double'
   - last chance
+  # Gifts other people made in the user's name are NOT the user's donations (user decision 2026-09-28)
+  - 'in your honou?r'
+  - 'in honou?r of'
+  # Follow-ups about an already-receipted gift, and tax-receipt download notices with no amount
+  - '(about|for) your water well'
+  - 'your well is under construction'
+  - 'tax receipt is (coming soon|ready)'
+  - 'download your \d{4} tax receipt'
+  - 'employer match'
+  - 'donation can be matched'
+  - 'donation .*has failed'
+  - 'donation .*has been cancel+ed'
+  - 'orphan pack'
+  - 'new supporter letter'
 exclude_sender:
   - apple.com
   - shopify
@@ -64,3 +78,12 @@ exclude_sender:
   - autotrader
   - lindt
   - simonsnewsletter
+  # Appeals / newsletters from charities whose real receipts are matched by rules.yaml first
+  - mail@muslimhands            # Muslim Hands Canada + USA appeals (receipts come from the same address but match rules first)
+  - feedback@muslimhands        # well-construction feedback reports
+  - marketing@icnareliefcanada.ca
+  - info@mytennights.com        # appeals and the "no 30th night" notice; receipts come from contact@
+  - info@myriadcanada.org       # newsletters; MyTenNights receipts arrive via mytennights.com
+  - clomembership@birds.cornell.edu   # Cornell Lab membership appeals
+  - wealthsimple
+  - cibc.com
