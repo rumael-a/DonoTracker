@@ -1,0 +1,66 @@
+# Decides which UNMATCHED emails appear on the "Needs a rule" sheet.
+# All entries are case-insensitive regular expressions except exclude_sender (plain substrings).
+candidate_subject:
+  - donat
+  - tax receipt
+  - official receipt
+  - charitable
+  - contribution receipt
+  - 'acknowledg(e)?ment'
+  - 'thank you for your (gift|donation|contribution|support)'
+  - zakat
+  - sadaqah
+  - 'night donation'
+candidate_body:
+  - 'tax.?deductible'
+  - '501\(c\)\(3\)'
+  - charitable contribution
+  - donation receipt
+  - tax receipt
+  - official receipt
+  - no goods or services
+  - cra registration
+  - registered charity
+  - charity reg
+  - donation confirmation
+exclude_subject:
+  - donate to
+  - why donate
+  - gifts doubled
+  - 'last day.*gift'
+  - giving tuesday
+  - swoop in
+  - fundrais
+  - matching gift
+  - provide hope
+  - 'give.*early'
+  - "don.*miss out"
+  - automate your
+  - 'double.*gift'
+  - 'gift.*double'
+  - last chance
+exclude_sender:
+  - apple.com
+  - shopify
+  - etsy.com
+  - uniqlo
+  - priceline
+  - airbnb
+  - amazon
+  - uber
+  - doordash
+  - bestbuy
+  - walmart
+  - costco
+  - ebay
+  - paypal
+  - netflix
+  - spotify
+  - google.com
+  - microsoft
+  - nintendo
+  - uhaul
+  - footlocker
+  - autotrader
+  - lindt
+  - simonsnewsletter
