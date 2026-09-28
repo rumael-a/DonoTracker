@@ -33,6 +33,7 @@ class Email:
     body_html: str | None
     attachments: list[Attachment]
     raw: bytes
+    labels: str = ""  # Gmail labels from X-Gmail-Labels, e.g. 'Spam,Unread'
 
 
 @dataclass

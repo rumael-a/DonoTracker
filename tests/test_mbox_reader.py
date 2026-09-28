@@ -61,6 +61,13 @@ def test_iter_emails_filters_years_and_parses_fields(tmp_path):
     assert first.raw.startswith(b"From:") or b"Subject: Tax receipt 2025" in first.raw
 
 
+def test_iter_emails_reads_gmail_labels(tmp_path):
+    raws = [make_email(text="x", message_id="<s@x>", labels="Spam,Category Updates"),
+            make_email(text="y", message_id="<n@x>")]
+    box = make_mbox(tmp_path / "t.mbox", raws)
+    assert [e.labels for e in iter_emails(box, "a@gmail.com", {2025})] == ["Spam,Category Updates", ""]
+
+
 def test_iter_emails_synthesizes_missing_message_id(tmp_path):
     box = make_mbox(tmp_path / "t.mbox", [make_email(message_id=None, text="x")])
     (email,) = list(iter_emails(box, "a@gmail.com", {2025}))

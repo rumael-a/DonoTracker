@@ -26,6 +26,7 @@ def format_summary(result: RunResult) -> str:
         f"Rows needing review:   {s.needs_review}",
         f"Emails needing a rule: {s.needs_rule}  (see suggested_rules.yaml)",
         f"Malformed skipped:     {s.skipped}",
+        f"Orgs with confirmations but no counted receipt: {', '.join(s.confirmation_only) or '(none)'}",
         f"Output: {result.out_dir}",
     ]
     return "\n".join(lines)

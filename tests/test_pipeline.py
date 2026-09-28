@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
 
@@ -5,8 +6,10 @@ from openpyxl import load_workbook
 
 from donation_tracker.config import Account
 from donation_tracker.detector import load_detector
-from donation_tracker.pipeline import run
-from tests.helpers import make_email, make_mbox, make_text_pdf, rule_record
+from donation_tracker.models import NEEDS_REVIEW, OK, Donation
+from donation_tracker.pipeline import flag_possible_duplicates, run
+from donation_tracker.report import summarize
+from tests.helpers import email_record, make_email, make_mbox, make_text_pdf, rule_record
 from tests.test_accountant import FakeRenderer
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -106,3 +109,40 @@ def test_early_next_year_candidate_mentioning_the_year_needs_a_rule(tmp_path):
     ws = load_workbook(tmp_path / "output" / "2025" / "donations_2025.xlsx")["Needs a rule"]
     assert ws["F1"].value == "Note"
     assert ws["F2"].value == "Dated 2026; possibly a receipt for 2025"
+
+
+def _donation(message_id, day, amount, receipt_no, *, role="receipt", name="Org A"):
+    email = email_record(message_id=message_id, date=datetime(2025, 3, day, 10, tzinfo=timezone.utc))
+    return Donation(email, rule_record(name=name, role=role), Decimal(amount), receipt_no, None, OK, [])
+
+
+def test_possible_duplicates_are_noted_and_logged_but_still_counted():
+    ds = [
+        _donation("<1@x>", 1, "10", "R-1"),
+        _donation("<2@x>", 5, "10", "R-1"),        # same receipt number, later email
+        _donation("<3@x>", 7, "25", None),
+        _donation("<4@x>", 7, "25", None),         # same day and amount, no receipt number
+        _donation("<5@x>", 7, "25", None, name="Org B"),
+        _donation("<6@x>", 8, "25", None),         # different day
+        _donation("<7@x>", 9, "10", "R-1", role="confirmation"),  # not countable
+    ]
+    log = []
+    flag_possible_duplicates(ds, log)
+    assert [d.notes for d in ds] == [[], ["Possible duplicate of 2025-03-01 row"], [],
+                                     ["Possible duplicate of 2025-03-07 row"], [], [], []]
+    warnings = [line for line in log if line.startswith("WARNING possible duplicate")]
+    assert len(warnings) == 2 and "<2@x>" in warnings[0] and "<1@x>" in warnings[0]
+    assert summarize(ds, 0, 0).totals == {("CA", "CAD"): Decimal("120")}
+
+
+def test_spam_folder_match_needs_review(tmp_path):
+    raw = make_email(sender="Muslim Hands <mail@muslimhands.ca>", subject="Your Receipt from Muslim Hands",
+                     text="Donation Amount: $50.00", message_id="<spam@x>", labels="Spam,Unread")
+    accounts = [Account("abbasirumael@gmail.com", make_mbox(tmp_path / "a.mbox", [raw]))]
+    result = run(2025, accounts, build_rules(), load_detector(ROOT / "detector.yaml"), tmp_path / "output",
+                 FakeRenderer())
+    (d,) = result.donations
+    assert d.amount == Decimal("50.00")
+    assert d.status == NEEDS_REVIEW
+    assert "In Gmail Spam folder — verify" in d.notes
+    assert result.summary.totals == {}

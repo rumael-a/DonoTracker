@@ -13,9 +13,11 @@ from .extractor import extract_donation, tax_year_for
 from .links import gmail_url
 from .matcher import match_rule
 from .mbox_reader import iter_emails
-from .models import Donation, Email, Rule
+from .models import NEEDS_REVIEW, Donation, Email, Rule
 from .pdf_text import attachments_text
 from .report import Summary, row_from_donation, summarize, write_workbook
+
+SPAM_NOTE = "In Gmail Spam folder — verify"
 
 
 @dataclass
@@ -25,6 +27,24 @@ class RunResult:
     needs_rule: list[Email]
     summary: Summary
     log: list[str]
+
+
+def flag_possible_duplicates(donations: list[Donation], log: list[str]) -> None:
+    """Note (don't drop) counted receipts that repeat an earlier one; `donations` must be sorted by date."""
+    first_seen: dict[tuple, Donation] = {}
+    for d in donations:
+        if not d.is_countable:
+            continue
+        if d.receipt_no is not None:
+            key = (d.rule.name, d.receipt_no)
+        else:
+            key = (d.rule.name, d.email.date.date(), d.amount)
+        earlier = first_seen.setdefault(key, d)
+        if earlier is d:
+            continue
+        d.notes.append(f"Possible duplicate of {earlier.email.date:%Y-%m-%d} row")
+        log.append(f"WARNING possible duplicate '{d.rule.name}': {d.email.date:%Y-%m-%d} {d.email.message_id} "
+                   f"repeats {earlier.email.date:%Y-%m-%d} {earlier.email.message_id}")
 
 
 def _needs_rule_candidate(email: Email, detector: DetectorConfig, year: int) -> bool:
@@ -66,9 +86,13 @@ def collect(accounts: list[Account], rules: list[Rule], detector: DetectorConfig
                            + ", ".join(f"'{r.name}'" for r in others))
             pdf_text, textless = attachments_text(email.attachments)
             donation = extract_donation(email, rule, email.body_text + "\n" + pdf_text, textless)
+            if "spam" in email.labels.lower():
+                donation.status = NEEDS_REVIEW
+                donation.notes.append(SPAM_NOTE)
             donation.gmail_url = gmail_url(email.account, email.message_id)
             donations.append(donation)
     donations.sort(key=lambda d: d.email.date)
+    flag_possible_duplicates(donations, log)
     return donations, needs_rule, skipped
 
 

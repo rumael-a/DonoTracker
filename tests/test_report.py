@@ -27,6 +27,26 @@ def test_summarize_counts_only_ok_receipts():
     assert s.totals == {("CA", "CAD"): Decimal("105"), ("US", "USD"): Decimal("20")}
     assert s.by_org == {("SickKids Foundation", "CAD"): Decimal("105"), ("Red Cross", "USD"): Decimal("20")}
     assert (s.needs_review, s.needs_rule, s.skipped) == (1, 3, 1)
+    assert s.confirmation_only == []  # SickKids has a counted receipt
+
+
+def test_confirmation_only_orgs_ignore_qualifier_and_counted_receipts(tmp_path):
+    ds = [
+        donation("50", role="confirmation", name="ICNA Relief Canada (card payment)"),
+        donation("50", name="ICNA Relief Canada"),
+        donation("5", role="confirmation", name="MyTenNights nightly"),
+        donation("5", role="confirmation", name="Zakat Fund (summary)"),
+        donation(None, status=NEEDS_REVIEW, name="Zakat Fund"),
+    ]
+    s = summarize(ds, 0, 0)
+    assert s.confirmation_only == ["MyTenNights nightly", "Zakat Fund"]
+    write_workbook(tmp_path / "s.xlsx", [], s, None, 2025)
+    rows = [[c.value for c in r][:2] for r in load_workbook(tmp_path / "s.xlsx")["Summary"].iter_rows()]
+    assert ["Orgs with confirmations but no counted receipt", "MyTenNights nightly, Zakat Fund"] in rows
+    empty = summarize([], 0, 0)
+    write_workbook(tmp_path / "e.xlsx", [], empty, None, 2025)
+    rows = [[c.value for c in r][:2] for r in load_workbook(tmp_path / "e.xlsx")["Summary"].iter_rows()]
+    assert ["Orgs with confirmations but no counted receipt", "(none)"] in rows
 
 
 def test_write_workbook_sheets_rows_and_relative_links(tmp_path):

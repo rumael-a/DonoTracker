@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
@@ -45,6 +46,7 @@ class Summary:
     needs_review: int
     needs_rule: int
     skipped: int
+    confirmation_only: list[str]  # organizations with confirmation rows but no counted receipt
 
 
 def row_from_donation(
@@ -86,7 +88,14 @@ def summarize(donations: list[Donation], needs_rule: int, skipped: int) -> Summa
         org_key = (d.rule.name, d.rule.currency)
         by_org[org_key] = by_org.get(org_key, Decimal(0)) + d.amount
     needs_review = sum(1 for d in donations if d.status == NEEDS_REVIEW)
-    return Summary(totals, by_org, needs_review, needs_rule, skipped)
+    counted = {_organization(d.rule.name) for d in donations if d.is_countable}
+    confirmed = {_organization(d.rule.name) for d in donations if d.rule.role == "confirmation"}
+    return Summary(totals, by_org, needs_review, needs_rule, skipped, sorted(confirmed - counted))
+
+
+def _organization(rule_name: str) -> str:
+    """'ICNA Relief Canada (card payment)' -> 'ICNA Relief Canada', pairing a confirmation rule with its receipt rule."""
+    return re.sub(r"\s*\([^)]*\)\s*$", "", rule_name)
 
 
 def _link(cell, target: str, label: str) -> None:
@@ -117,6 +126,7 @@ def _write_summary(ws, summary: Summary) -> None:
     ws.append(["Rows needing review", summary.needs_review])
     ws.append(["Emails needing a rule", summary.needs_rule])
     ws.append(["Malformed messages skipped", summary.skipped])
+    ws.append(["Orgs with confirmations but no counted receipt", ", ".join(summary.confirmation_only) or "(none)"])
     for row in ws.iter_rows():
         for cell in row:
             if isinstance(cell.value, Decimal):

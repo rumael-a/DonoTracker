@@ -31,6 +31,7 @@ def test_run_command(tmp_path, capsys, monkeypatch):
     assert code == 0
     out = capsys.readouterr().out
     assert "CA / CAD: 50.00" in out
+    assert "Orgs with confirmations but no counted receipt: (none)" in out
     assert (tmp_path / "output" / "2025" / "donations_2025.xlsx").exists()
 
 

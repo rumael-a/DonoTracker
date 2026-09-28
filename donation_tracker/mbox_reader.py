@@ -140,6 +140,7 @@ def _build_email(msg: Message, raw: bytes, account: str, date: datetime) -> Emai
         body_html=body_html,
         attachments=_attachments(msg),
         raw=raw,
+        labels=decode_str(msg.get("X-Gmail-Labels")),
     )
 
 

@@ -65,7 +65,8 @@ Single Python package, one module per responsibility:
 
 ### `Email` record
 
-`account, message_id, date, sender, subject, body_text, body_html, attachments[(filename, content_type, bytes)], raw_bytes`
+`account, message_id, date, sender, subject, body_text, body_html, attachments[(filename, content_type, bytes)], raw_bytes, labels`
+(`labels` = the `X-Gmail-Labels` header, e.g. `Spam,Unread`)
 
 ### `Donation` record
 
@@ -141,7 +142,8 @@ Downtown Mosque. Each rule ships with a regression test fixture (see Testing).
 ## Status and totals logic
 
 - `status = NEEDS REVIEW` when: amount not extracted, or a PDF attachment had no text layer
-  and the amount came from nowhere else.
+  and the amount came from nowhere else, or the email is in the Gmail Spam folder (its
+  `X-Gmail-Labels` header contains "Spam"; note "In Gmail Spam folder — verify").
 - Totals (Summary sheet, console) include only rows with `role = receipt` and `status = OK`.
 - `role = confirmation` rows appear in the Donations sheet for reference; never totalled.
 - US flag: rows with `country = US`, `amount >= 250` and no receipt number and no receipt

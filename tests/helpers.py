@@ -19,8 +19,11 @@ def make_email(
     html: str | None = None,
     message_id: str | None = "<abc123@sickkids.ca>",
     attachments: tuple | list = (),
+    labels: str | None = None,
 ) -> bytes:
     msg = EmailMessage()
+    if labels is not None:
+        msg["X-Gmail-Labels"] = labels
     msg["From"] = sender
     msg["To"] = to
     msg["Subject"] = subject
