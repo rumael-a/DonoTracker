@@ -58,6 +58,8 @@ def test_empty_rules_file_is_allowed(tmp_path):
         ("- name: X\n  country: CA\n  currency: CAD\n  match: {from: a}\n  extract: {amount: '([0-9'}\n", "amount"),
         ("- name: X\n  country: CA\n  currency: CAD\n  match: {from: a}\n  extract: {amount: '[0-9]+'}\n", "capture group"),
         ("- name: X\n  country: CA\n  currency: CAD\n  match: {from: a}\n  extract: {total: '(x)'}\n", "total"),
+        ("- name: X\n  country: CA\n  currency: CAD\n  match: {from: a}\n  extract: ['(x)']\n",
+         "rule #1 (X): extract must be a mapping of key: regex"),
         ("- name: X\n  country: CA\n  currency: CAD\n  match: {from: a}\n"
          "- name: X\n  country: CA\n  currency: CAD\n  match: {from: b}\n", "duplicate"),
         ("name: X\n", "list"),

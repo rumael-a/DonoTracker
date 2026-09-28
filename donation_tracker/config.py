@@ -86,6 +86,8 @@ def _rule(where: str, entry: dict) -> Rule:
     if not isinstance(match, dict) or not _as_list(match.get("from")):
         raise ConfigError(f"{where}: match.from is required")
     extract_raw = entry.get("extract") or {}
+    if not isinstance(extract_raw, dict):
+        raise ConfigError(f"{where}: extract must be a mapping of key: regex")
     unknown = set(extract_raw) - EXTRACT_KEYS
     if unknown:
         raise ConfigError(f"{where}: unknown extract key(s) {sorted(unknown)}; allowed {sorted(EXTRACT_KEYS)}")
