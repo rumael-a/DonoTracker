@@ -1,4 +1,4 @@
-from datetime import timezone
+from datetime import datetime, timedelta, timezone
 
 from donation_tracker.mbox_reader import decode_str, html_to_text, iter_emails, parse_date
 from tests.helpers import make_email, make_mbox, make_text_pdf
@@ -17,6 +17,18 @@ def test_parse_date_returns_aware_datetime_or_none():
     assert naive.tzinfo is not None
     assert parse_date("garbage") is None
     assert parse_date("") is None
+
+
+def test_parse_date_uses_local_time_for_the_year():
+    eastern = timezone(timedelta(hours=-5))
+    dt = parse_date("Thu, 01 Jan 2026 02:00:00 +0000", tz=eastern)
+    assert dt.year == 2025
+    assert dt.utcoffset() == timedelta(hours=-5)
+
+
+def test_parse_date_iso_fallback():
+    dt = parse_date("2025-06-01T10:00:00+00:00", tz=timezone.utc)
+    assert dt == datetime(2025, 6, 1, 10, 0, tzinfo=timezone.utc)
 
 
 def test_html_to_text_drops_style_and_tags():

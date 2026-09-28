@@ -11,7 +11,7 @@ import html
 import mailbox
 import re
 from collections.abc import Callable, Iterator
-from datetime import datetime, timezone
+from datetime import datetime, timezone, tzinfo
 from email.header import decode_header
 from email.message import Message
 from email.parser import BytesHeaderParser
@@ -50,19 +50,24 @@ def decode_str(value) -> str:
     return " ".join("".join(result).split())
 
 
-def parse_date(raw: str) -> datetime | None:
+def parse_date(raw: str, tz: tzinfo | None = None) -> datetime | None:
+    """Parse a Date header; the result is in `tz` (None = this computer's local time) so the
+    tax year follows the donor's calendar, not the sender's timezone."""
     if not raw:
         return None
     try:
         dt = parsedate_to_datetime(raw)
     except (TypeError, ValueError, IndexError):
-        match = re.search(r"\b(\d{1,2}) (%s) (\d{4})\b" % "|".join(_MONTHS), raw)
-        if not match:
-            return None
-        dt = datetime(int(match.group(3)), _MONTHS.index(match.group(2)) + 1, int(match.group(1)))
+        try:
+            dt = datetime.fromisoformat(raw.strip())
+        except ValueError:
+            match = re.search(r"\b(\d{1,2}) (%s) (\d{4})\b" % "|".join(_MONTHS), raw)
+            if not match:
+                return None
+            dt = datetime(int(match.group(3)), _MONTHS.index(match.group(2)) + 1, int(match.group(1)))
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
-    return dt
+    return dt.astimezone(tz)
 
 
 def html_to_text(markup: str) -> str:
