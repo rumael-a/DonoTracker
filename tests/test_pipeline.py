@@ -1,6 +1,8 @@
 from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
+from urllib.parse import urlparse
+from urllib.request import url2pathname
 
 import pytest
 from openpyxl import load_workbook
@@ -79,7 +81,9 @@ def test_end_to_end(tmp_path):
     for row in ws.iter_rows(min_row=2):
         for cell in (row[11], row[12]):
             if cell.hyperlink:
-                assert (year_dir / cell.hyperlink.target).exists(), cell.hyperlink.target
+                target = cell.hyperlink.target
+                assert target.startswith("file:///"), target  # absolute: works in viewers that don't resolve relative links
+                assert Path(url2pathname(urlparse(target).path)).exists(), target
     assert "@newcharity.org" in (year_dir / "suggested_rules.yaml").read_text(encoding="utf-8")
     assert (year_dir / "run_log.txt").exists()
     pack = year_dir / "for_accountant"

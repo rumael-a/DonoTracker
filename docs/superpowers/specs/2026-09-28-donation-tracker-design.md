@@ -176,8 +176,10 @@ output/2025/
       ...
 ```
 
-Evidence folder name collisions get a `_2`, `_3` suffix. All workbook links are relative,
-so each folder can be zipped and shared.
+Evidence folder name collisions get a `_2`, `_3` suffix. The main workbook's Email/Receipt
+file links are absolute `file:///` URIs, because some viewers (e.g. VS Code's Office Viewer)
+don't resolve relative links; re-running rebuilds them if the output folder moves. The
+`for_accountant/` workbook keeps relative links so that folder can be zipped and shared.
 
 ### `donations_<year>.xlsx`
 

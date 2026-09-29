@@ -88,6 +88,21 @@ def test_write_workbook_sheets_rows_and_relative_links(tmp_path):
     assert rules_sheet["F3"].value == "Dated 2026; possibly a receipt for 2025"
 
 
+def test_write_workbook_absolute_file_links(tmp_path):
+    folder = tmp_path / "2025" / "evidence" / "2025-03-14_Muslim Hands (summary)"
+    folder.mkdir(parents=True)
+    d = donation("100")
+    d.email_html_path = folder / "email.html"
+    d.receipt_paths = [folder / "a #1.pdf"]
+    path = tmp_path / "2025" / "donations_2025.xlsx"
+    write_workbook(path, [row_from_donation(d)], summarize([d], 0, 0), None, 2025, absolute_links=True)
+
+    ws = load_workbook(path)["Donations"]
+    assert ws["L2"].hyperlink.target == d.email_html_path.resolve().as_uri()
+    assert ws["M2"].hyperlink.target == d.receipt_paths[0].resolve().as_uri()
+    assert ws["L2"].hyperlink.target.startswith("file:///")
+
+
 def test_workbook_without_needs_rule_sheet(tmp_path):
     write_workbook(tmp_path / "s.xlsx", [], summarize([], 0, 0), None, 2025)
     assert load_workbook(tmp_path / "s.xlsx").sheetnames == ["Summary", "Donations"]

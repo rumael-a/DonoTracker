@@ -109,7 +109,7 @@ def run(year: int, accounts: list[Account], rules: list[Rule], detector: Detecto
             save_evidence(donation, out_dir / "evidence")
         summary = summarize(donations, len(needs_rule), skipped)
         write_workbook(out_dir / f"donations_{year}.xlsx", [row_from_donation(d) for d in donations], summary,
-                       needs_rule, year)
+                       needs_rule, year, absolute_links=True)
         (out_dir / "suggested_rules.yaml").write_text(suggested_rules_yaml(needs_rule), encoding="utf-8")
         build_pack(donations, out_dir / "for_accountant", renderer, year, summary, log)
     finally:

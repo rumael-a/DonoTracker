@@ -104,7 +104,11 @@ def _link(cell, target: str, label: str) -> None:
     cell.style = "Hyperlink"
 
 
-def _relative(target: Path, workbook_path: Path) -> str:
+def _file_link(target: Path, workbook_path: Path, absolute: bool) -> str:
+    # Absolute file:/// URIs work in viewers that don't resolve relative links (e.g. VS Code Office Viewer);
+    # relative links keep a folder portable when zipped (accountant pack).
+    if absolute:
+        return target.resolve().as_uri()
     return os.path.relpath(target, workbook_path.parent).replace("\\", "/")
 
 
@@ -134,7 +138,7 @@ def _write_summary(ws, summary: Summary) -> None:
     ws.column_dimensions["A"].width = 40
 
 
-def _write_donations(ws, rows: list[ReportRow], workbook_path: Path) -> None:
+def _write_donations(ws, rows: list[ReportRow], workbook_path: Path, absolute_links: bool) -> None:
     ws.append(HEADERS)
     for cell in ws[1]:
         cell.font = BOLD
@@ -147,9 +151,9 @@ def _write_donations(ws, rows: list[ReportRow], workbook_path: Path) -> None:
         if r.gmail_url:
             _link(excel_row[10], r.gmail_url, "Open in Gmail")
         if r.email_file:
-            _link(excel_row[11], _relative(r.email_file, workbook_path), r.email_file.name)
+            _link(excel_row[11], _file_link(r.email_file, workbook_path, absolute_links), r.email_file.name)
         if r.receipt_file:
-            _link(excel_row[12], _relative(r.receipt_file, workbook_path), r.receipt_file.name)
+            _link(excel_row[12], _file_link(r.receipt_file, workbook_path, absolute_links), r.receipt_file.name)
         if r.status == NEEDS_REVIEW:
             for cell in excel_row:
                 cell.fill = YELLOW
@@ -174,12 +178,12 @@ def _write_needs_rule(ws, emails: list[Email], year: int) -> None:
 
 
 def write_workbook(path: Path, rows: list[ReportRow], summary: Summary, needs_rule: list[Email] | None,
-                   year: int) -> None:
+                   year: int, absolute_links: bool = False) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     wb = Workbook()
     _write_summary(wb.active, summary)
     wb.active.title = "Summary"
-    _write_donations(wb.create_sheet("Donations"), rows, path)
+    _write_donations(wb.create_sheet("Donations"), rows, path, absolute_links)
     if needs_rule is not None:
         _write_needs_rule(wb.create_sheet("Needs a rule"), needs_rule, year)
     wb.save(path)
